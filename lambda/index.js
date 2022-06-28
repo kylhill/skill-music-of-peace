@@ -8,7 +8,21 @@
 const Alexa = require('ask-sdk-core');
 const AWS = require('aws-sdk');
 const ddbAdapter = require('ask-sdk-dynamodb-persistence-adapter');
+//const Util = require('./util.js');
 
+/* const LaunchRequestHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
+    },
+    handle(handlerInput) {
+        const speakOutput = 'Welcome, you can say "play audio" to start listening to music. What would you like to do?';
+
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt(speakOutput)
+            .getResponse();
+    }
+}; */
 /**
  * Intent handler to start playing an audio file.
  * By default, it will play a specific audio stream.
@@ -17,7 +31,7 @@ const PlayAudioIntentHandler = {
     canHandle(handlerInput) {
         return (Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest')
             || (Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-                && (   Alexa.getIntentName(handlerInput.requestEnvelope) === 'MusicOfPeaceIntent'
+                && (   Alexa.getIntentName(handlerInput.requestEnvelope) === 'PlayAudioIntent'
                     || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.ResumeIntent'));
     },
     async handle(handlerInput) {
@@ -26,6 +40,16 @@ const PlayAudioIntentHandler = {
         const speakOutput = 'Playing Music of Peace.';
         const playBehavior = 'REPLACE_ALL';
         const mediaUrl = 'https://kws.tacomafia.net/mop/playlist.m3u';
+        
+        /**
+         * If your audio file is located on the S3 bucket in a hosted skill, you can use the line below to retrieve a presigned URL for the audio file.
+         * https://developer.amazon.com/docs/alexa/hosted-skills/alexa-hosted-skills-media-files.html
+         * 
+         * const podcastUrl = Util.getS3PreSignedUrl("Media/audio.mp3").replace(/&/g,'&amp;');
+         * 
+         * If you cannot play your own audio in place of the sample URL, make sure your audio file adheres to the guidelines:
+         * https://developer.amazon.com/docs/alexa/custom-skills/audioplayer-interface-reference.html#audio-stream-requirements
+        */
 
         return handlerInput.responseBuilder
             .speak(speakOutput)
@@ -39,16 +63,45 @@ const PlayAudioIntentHandler = {
     }
 };
 
+/**
+ * Intent handler to start playing an audio file.
+ * By default, it will play a specific audio stream.
+ * */
 const PauseAudioIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && (   Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.CancelIntent'
-                || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.StopIntent'        
-                || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.PauseIntent');
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.PauseIntent';
     },
     async handle(handlerInput) {
         return handlerInput.responseBuilder
             .addAudioPlayerStopDirective()
+            .getResponse();
+    }
+};
+/**
+ * Intent handler for built-in intents that aren't supported in this sample skill.
+ * As this is a sample skill for a single stream, these intents are irrelevant to this skill.
+ * Regardless, the skill needs to handle this gracefully, which is why this handler exists.
+ * */
+const UnsupportedAudioIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && (
+                Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.LoopOffIntent'
+                    || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.LoopOnIntent'
+                    || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.NextIntent'
+                    || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.PreviousIntent'
+                    || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.RepeatIntent'
+                    || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.ShuffleOffIntent'
+                    || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.ShuffleOnIntent'
+                    || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.StartOverIntent'
+                );
+    },
+    async handle(handlerInput) {
+        const speakOutput = 'Sorry, I can\'t support that yet.';
+
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
             .getResponse();
     }
 };
@@ -59,7 +112,7 @@ const HelpIntentHandler = {
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.HelpIntent';
     },
     handle(handlerInput) {
-        const speakOutput = 'You can say "play audio" to start playing Music of Peace! How can I help?';
+        const speakOutput = 'You can say "play audio" to start playing music! How can I help?';
 
         return handlerInput.responseBuilder
             .speak(speakOutput)
@@ -68,27 +121,20 @@ const HelpIntentHandler = {
     }
 };
 
-const UnsupportedAudioIntentHandler = {
+const CancelAndStopIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && (   Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.LoopOffIntent'
-                || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.LoopOnIntent'
-                || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.NextIntent'
-                || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.PreviousIntent'
-                || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.RepeatIntent'
-                || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.ShuffleOffIntent'
-                || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.ShuffleOnIntent'
-                || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.StartOverIntent');
+            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.CancelIntent'
+                || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.StopIntent');
     },
-    async handle(handlerInput) {
-        const speakOutput = 'Sorry, I can\'t do that yet.';
+    handle(handlerInput) {
+        const speakOutput = 'Goodbye!';
 
         return handlerInput.responseBuilder
             .speak(speakOutput)
             .getResponse();
     }
 };
-
 /* *
  * AudioPlayer events can be triggered when users interact with your audio playback, such as stopping and 
  * starting the audio, as well as when playback is about to finish playing or playback fails.
@@ -104,17 +150,19 @@ const AudioPlayerEventHandler = {
     
     const audioPlayerEventName = handlerInput.requestEnvelope.request.type.split('.')[1];
     console.log(`AudioPlayer event encountered: ${handlerInput.requestEnvelope.request.type}`);
-    
+    let returnResponseFlag = false;
     switch (audioPlayerEventName) {
       case 'PlaybackStarted':
         playbackInfo.token = handlerInput.requestEnvelope.request.token;
         playbackInfo.inPlaybackSession = true;
         playbackInfo.hasPreviousPlaybackSession = true;
+        returnResponseFlag = true;
         break;
       case 'PlaybackFinished':
         playbackInfo.inPlaybackSession = false;
         playbackInfo.hasPreviousPlaybackSession = false;
         playbackInfo.nextStreamEnqueued = false;
+        returnResponseFlag = true;
         break;
       case 'PlaybackStopped':
         playbackInfo.token = handlerInput.requestEnvelope.request.token;
@@ -135,6 +183,7 @@ const AudioPlayerEventHandler = {
   },
 };
 
+
 /* *
  * PlaybackController events can be triggered when users interact with the audio controls on a device screen.
  * starting the audio, as well as when playback is about to finish playing or playback fails.
@@ -147,11 +196,9 @@ const PlaybackControllerHandler = {
   },
   async handle(handlerInput) {
     const playbackInfo = await getPlaybackInfo(handlerInput);
-    
     const playBehavior = 'REPLACE_ALL';
     const mediaUrl = 'https://kws.tacomafia.net/mop/playlist.m3u';
     const playbackControllerEventName = handlerInput.requestEnvelope.request.type.split('.')[1];
-    
     let response;
     switch (playbackControllerEventName) {
       case 'PlayCommandIssued':
@@ -178,7 +225,6 @@ const PlaybackControllerHandler = {
     return response;
   },
 };
-
 /* *
  * SystemExceptions can be triggered if there is a problem with the audio that is trying to be played.
  * This handler will log the details of the exception and can help troubleshoot issues with audio playback.
@@ -211,7 +257,6 @@ const FallbackIntentHandler = {
             .getResponse();
     }
 };
-
 /* *
  * SessionEndedRequest notifies that a session was ended. This handler will be triggered when a currently open 
  * session is closed for one of the following reasons: 1) The user says "exit" or "quit". 2) The user does not 
@@ -227,7 +272,25 @@ const SessionEndedRequestHandler = {
         return handlerInput.responseBuilder.getResponse(); // notice we send an empty response
     }
 };
+/* *
+ * The intent reflector is used for interaction model testing and debugging.
+ * It will simply repeat the intent the user said. You can create custom handlers for your intents 
+ * by defining them above, then also adding them to the request handler chain below 
+ * */
+const IntentReflectorHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest';
+    },
+    handle(handlerInput) {
+        const intentName = Alexa.getIntentName(handlerInput.requestEnvelope);
+        const speakOutput = `You just triggered ${intentName}`;
 
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            //.reprompt('add a reprompt if you want to keep the session open for the user to respond')
+            .getResponse();
+    }
+};
 /**
  * Generic error handling to capture any syntax or routing errors. If you receive an error
  * stating the request handler chain is not found, you have not implemented a handler for
@@ -258,7 +321,7 @@ async function getPlaybackInfo(handlerInput) {
 async function setPlaybackInfo(handlerInput, playbackInfoObject) {
   await handlerInput.attributesManager.setPersistentAttributes({
       playbackInfo: playbackInfoObject
-  });
+      });
 }
 
 // Request and response interceptors using the DynamoDB table associated with Alexa-hosted skills
@@ -281,7 +344,7 @@ const LoadPersistentAttributesRequestInterceptor = {
       handlerInput.attributesManager.setPersistentAttributes({
         playbackInfo: {
           offsetInMilliseconds: 0,
-          token: '',
+          token: 'sample-audio-token',
           inPlaybackSession: false,
           hasPreviousPlaybackSession: false,
         },
@@ -303,18 +366,23 @@ const SavePersistentAttributesResponseInterceptor = {
  * */
 exports.handler = Alexa.SkillBuilders.custom()
     .addRequestHandlers(
+        //LaunchRequestHandler,
         PlayAudioIntentHandler,
         PauseAudioIntentHandler,
         UnsupportedAudioIntentHandler,
         HelpIntentHandler,
+        CancelAndStopIntentHandler,
         AudioPlayerEventHandler,
         PlaybackControllerHandler,
         SystemExceptionHandler,
         FallbackIntentHandler,
-        SessionEndedRequestHandler)
-    .addErrorHandlers(ErrorHandler)
+        SessionEndedRequestHandler,
+        IntentReflectorHandler)
+    .addErrorHandlers(
+        ErrorHandler)
     .addRequestInterceptors(LoadPersistentAttributesRequestInterceptor)
     .addResponseInterceptors(SavePersistentAttributesResponseInterceptor)
+    .withCustomUserAgent('sample/audioplayer-nodejs/v2.0')
     .withPersistenceAdapter(
         new ddbAdapter.DynamoDbPersistenceAdapter({
             tableName: process.env.DYNAMODB_PERSISTENCE_TABLE_NAME,

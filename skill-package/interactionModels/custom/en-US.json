@@ -16,11 +16,13 @@
           "samples": []
         },
         {
-          "name": "MusicOfPeaceIntent",
+          "name": "PlayAudioIntent",
           "slots": [],
           "samples": [
             "start music of peace",
-            "play music of peace"
+            "play music of peace",
+            "start audio",
+            "play audio"
           ]
         },
         {
@@ -42,6 +44,5 @@
       ],
       "types": []
     }
-  },
-  "version": "3"
+  }
 }
