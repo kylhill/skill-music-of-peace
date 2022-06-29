@@ -70,7 +70,9 @@ const PlayAudioIntentHandler = {
 const PauseAudioIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.PauseIntent';
+            && (   Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.CancelIntent'
+                || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.StopIntent'
+                || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.PauseIntent');
     },
     async handle(handlerInput) {
         return handlerInput.responseBuilder
@@ -121,7 +123,7 @@ const HelpIntentHandler = {
     }
 };
 
-const CancelAndStopIntentHandler = {
+/* const CancelAndStopIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.CancelIntent'
@@ -134,7 +136,7 @@ const CancelAndStopIntentHandler = {
             .speak(speakOutput)
             .getResponse();
     }
-};
+}; */
 /* *
  * AudioPlayer events can be triggered when users interact with your audio playback, such as stopping and 
  * starting the audio, as well as when playback is about to finish playing or playback fails.
@@ -239,7 +241,7 @@ const SystemExceptionHandler = {
 };
 
 /* *
- * FallbackIntent triggers when a customer says something that doesn’t map to any intents in your skill
+ * FallbackIntent triggers when a customer says something that doesn't map to any intents in your skill
  * It must also be defined in the language model (if the locale supports it)
  * This handler can be safely added but will be ingnored in locales that do not support it yet 
  * */
@@ -344,7 +346,7 @@ const LoadPersistentAttributesRequestInterceptor = {
       handlerInput.attributesManager.setPersistentAttributes({
         playbackInfo: {
           offsetInMilliseconds: 0,
-          token: 'sample-audio-token',
+          token: '',
           inPlaybackSession: false,
           hasPreviousPlaybackSession: false,
         },
@@ -371,7 +373,7 @@ exports.handler = Alexa.SkillBuilders.custom()
         PauseAudioIntentHandler,
         UnsupportedAudioIntentHandler,
         HelpIntentHandler,
-        CancelAndStopIntentHandler,
+        //CancelAndStopIntentHandler,
         AudioPlayerEventHandler,
         PlaybackControllerHandler,
         SystemExceptionHandler,
